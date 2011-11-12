@@ -1,7 +1,5 @@
 package de.nulldesign.nd2d.display {
 
-	import com.demonsters.debugger.MonsterDebugger;
-
 	import de.nulldesign.nd2d.utils.StatsObject;
 
 	import flash.display.Stage;
@@ -34,11 +32,12 @@ package de.nulldesign.nd2d.display {
 
 		public function CanvasRenderer(stage : Stage, canvas : Canvas, stage3DID : uint = 0, bounds : Rectangle = null, enableErrorChecking : Boolean = false) {
 			_stage = stage;
-			_canvas = canvas;
 			_stage3DID = stage3DID;
 			_bounds = bounds;
 			_enableErrorChecking = enableErrorChecking;
 			_isDeviceNotInitialized = true;
+
+			_canvas = canvas;
 		}
 
 		public function bindEvents() : void {
@@ -55,7 +54,7 @@ package de.nulldesign.nd2d.display {
 			// means we got the Event.CONTEXT3D_CREATE for the second time,
 			// the device was lost. Reinit everything
 			_isDeviceWasLost = !_isDeviceNotInitialized;
-   			_isDeviceNotInitialized = true;
+			_isDeviceNotInitialized = true;
 		}
 
 		protected function onStageResizeHandler(e : Event = null) : void {
@@ -72,6 +71,7 @@ package de.nulldesign.nd2d.display {
 
 			_context.configureBackBuffer(rect.width, rect.height, antialiasing, false);
 			_camera.resizeCameraStage(rect.width, rect.height);
+			_canvas.setStageAndCamRef(_stage, _camera);
 		}
 
 		protected function onContext3DErrorHandler(event : ErrorEvent) : void {
@@ -85,44 +85,37 @@ package de.nulldesign.nd2d.display {
 		protected var _accumulator : Number = 0.0;
 
 		public function update() : void {
+			if (_isDeviceNotInitialized) {
+				initializeContext();
+
+				if (_isDeviceWasLost) {
+					_canvas.handleDeviceLoss();
+				}
+			}
+
 			var currentTime : Number = getTimer() / 1000.0;
 			var elapsed : Number = currentTime - _previousTime;
 
-			if (_isDeviceNotInitialized) {
-				MonsterDebugger.log('Initialize device!');
-				initializeContext3D();
+			// note: max frame time to avoid spiral of death
+			if (elapsed > 0.25) {
+				elapsed = 0.25;
 			}
 
-			MonsterDebugger.log(currentTime);
+			_previousTime = currentTime;
+			_accumulator += elapsed;
 
-			if (_canvas && _context) {
-				if (_isDeviceWasLost) {
-					MonsterDebugger.log('device was lost');
-					_canvas.handleDeviceLoss();
-					_isDeviceWasLost = false;
-				}
-
-				// note: max frame time to avoid spiral of death
-				if (elapsed > 0.25) {
-					elapsed = 0.25;
-				}
-
-				_previousTime = currentTime;
-				_accumulator += elapsed;
-
-				while (_accumulator >= _timeStep) {
-					_time += _timeStep;
-					_canvas.stepNode(_timeStep, _time);
-					_accumulator -= _timeStep;
-				}
-
-				_context.clear(_canvas.br, _canvas.bg, _canvas.bb, 1.0);
-				_canvas.drawNode(_context, _camera, false, _stats);
-				_context.present();
+			while (_accumulator >= _timeStep) {
+				_time += _timeStep;
+				_canvas.stepNode(_timeStep, _time);
+				_accumulator -= _timeStep;
 			}
+
+			_context.clear(_canvas.br, _canvas.bg, _canvas.bb, 1.0);
+			_canvas.drawNode(_context, _camera, false, _stats);
+			_context.present();
 		}
 
-		protected function initializeContext3D() : void {
+		private function initializeContext() : void {
 			_context = _stage.stage3Ds[_stage3DID].context3D;
 			_context.enableErrorChecking = _enableErrorChecking;
 			_context.setCulling(Context3DTriangleFace.NONE);
@@ -130,10 +123,6 @@ package de.nulldesign.nd2d.display {
 			_isHardwareAccelerated = _context.driverInfo.toLowerCase().indexOf("software") == -1;
 
 			onStageResizeHandler();
-
-			if (_canvas) {
-				_canvas.setStageAndCamRef(_stage, _camera);
-			}
 
 			_isDeviceNotInitialized = false;
 		}
@@ -147,7 +136,6 @@ package de.nulldesign.nd2d.display {
 				_context.dispose();
 			}
 		}
-
 
 		public function get stats() : StatsObject {
 			return _stats;
