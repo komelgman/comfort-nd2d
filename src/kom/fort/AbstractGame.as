@@ -52,20 +52,20 @@ package kom.fort {
 			}
 
 			Deferred.parallel(
-					loadConfig(),
-					loadAssets()
+				loadConfig(),
+				loadAssets()
 			).done(function() : void {
-						initialize().done(function() : void {
-							bindEvents();
-							requestContext();
+				initialize().done(function() : void {
+					bindEvents();
+					requestContext();
 
-							ScreenManager.showScreen(config.startScreen);
+					ScreenManager.showScreen(config.startScreen);
 
-							wakeUp();
+					wakeUp();
 
-							_wasStart = true;
-						});
-					});
+					_wasStart = true;
+				});
+			});
 		}
 
 		protected function loadConfig() : IPromise {
