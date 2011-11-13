@@ -1,6 +1,8 @@
 package kom.fort.ui.widget {
 	import de.nulldesign.nd2d.display.Node2D;
 
+	import flash.display.DisplayObjectContainer;
+
 	import flash.display.Stage;
 	import flash.events.Event;
 
@@ -16,8 +18,8 @@ package kom.fort.ui.widget {
 
 		protected static var _manager : InterfaceManager;
 
-		public static function init(stage : Stage, viewport : Node2D = null) : void {
-			_manager = new InterfaceManager(stage, viewport);
+		public static function init(stage : Stage, viewport3D : Node2D, viewportNative : DisplayObjectContainer = null) : void {
+			_manager = new InterfaceManager(stage, viewport3D, viewportNative);
 		}
 
 
@@ -78,8 +80,12 @@ package kom.fort.ui.widget {
 			return _manager.getStage();
 		}
 
-		public static function getViewport() : Node2D {
-			return _manager.getViewport();
+		public static function getViewport3D() : Node2D {
+			return _manager.getViewport3D();
+		}
+
+		public static function getViewportNative() : DisplayObjectContainer {
+			return _manager.getViewportNative();
 		}
 	}
 }

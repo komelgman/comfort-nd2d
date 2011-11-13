@@ -2,10 +2,13 @@ package kom.fort.ui {
 
 	import de.nulldesign.nd2d.display.Node2D;
 
+	import flash.display.DisplayObjectContainer;
+
 	import flash.display.Stage;
 	import flash.errors.IllegalOperationError;
 	import flash.events.Event;
 	import flash.events.EventDispatcher;
+	import flash.events.EventPhase;
 	import flash.utils.Dictionary;
 
 	import kom.fort.ui.events.UIComponentEvent;
@@ -15,11 +18,13 @@ package kom.fort.ui {
 	public class InterfaceManager extends EventDispatcher {
 
 		private var _wasInit : Boolean = false;
-		private var _stage : Stage;
-		private var _viewport : Node2D;
 		private var _components : Dictionary = new Dictionary();
 
-		public function InterfaceManager(stage : Stage, viewport : Node2D) {
+		private var _stage : Stage;
+		private var _viewport3D : Node2D;
+		private var _viewportNative : DisplayObjectContainer;
+
+		public function InterfaceManager(stage : Stage, viewport3D : Node2D, viewportNative : DisplayObjectContainer = null) {
 			if (_wasInit) {
 				throw new IllegalOperationError();
 			}
@@ -29,7 +34,8 @@ package kom.fort.ui {
 			}
 
 			_stage = stage;
-			_viewport = viewport;
+			_viewport3D = viewport3D;
+			_viewportNative = viewportNative ? viewportNative : stage;
 
 			_wasInit = true;
 		}
@@ -100,17 +106,34 @@ package kom.fort.ui {
 		}
 
 		private function addToViewport(component : ManagedComponent) : IPromise {
-			var deferred : Deferred = new Deferred();
+			return listViewportEvent(component,  Event.ADDED_TO_STAGE);
+		}
 
-			component.addEventListener(Event.ADDED_TO_STAGE, function(e : Event) : void {
-				component.removeEventListener(Event.ADDED_TO_STAGE, arguments.callee);
-				deferred.resolve();
-			});
+		private function listViewportEvent(component : ManagedComponent, eventName : String) : IPromise {
+			var deferred : Deferred = new Deferred(), trigger : Number = 1;
 
-			_viewport.addChild(component);
+			if (component.displayObject) {
+				component.displayObject.addEventListener(eventName, addedToStageHandler);
+				_viewportNative.addChild(component.displayObject);
+				trigger++;
+			}
+
+			component.addEventListener(eventName, addedToStageHandler, false, 0, true);
+			_viewport3D.addChild(component);
 
 			return deferred.promise;
+
+
+
+
+			function addedToStageHandler(e : Event) : void {
+				e.currentTarget.removeEventListener(eventName, arguments.callee, e.eventPhase == EventPhase.CAPTURING_PHASE);
+				if (--trigger == 0) {
+					deferred.resolve();
+				}
+			}
 		}
+
 
 
 		public function hideComponent(component : ManagedComponent) : void {
@@ -134,16 +157,7 @@ package kom.fort.ui {
 		}
 
 		private function removeFromViewport(component : ManagedComponent) : IPromise {
-			var deferred : Deferred = new Deferred();
-
-			component.addEventListener(Event.REMOVED_FROM_STAGE, function(event : Event) : void {
-				component.removeEventListener(Event.REMOVED_FROM_STAGE, arguments.callee);
-				deferred.resolve();
-			}, false, 0, true);
-
-			_viewport.removeChild(component);
-
-			return deferred.promise;
+			return listViewportEvent(component,  Event.REMOVED_FROM_STAGE);
 		}
 
 
@@ -184,12 +198,20 @@ package kom.fort.ui {
 			return _stage;
 		}
 
-		public function getViewport() : Node2D {
+		public function getViewport3D() : Node2D {
 			if (!_wasInit) {
 				throw new IllegalOperationError();
 			}
 
-			return _viewport;
+			return _viewport3D;
+		}
+
+		public function getViewportNative() : DisplayObjectContainer {
+			if (!_wasInit) {
+				throw new IllegalOperationError();
+			}
+
+			return _viewportNative;
 		}
 	}
 }

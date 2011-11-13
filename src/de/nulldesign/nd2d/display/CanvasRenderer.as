@@ -58,19 +58,19 @@ package de.nulldesign.nd2d.display {
 			_isDeviceWasLost = !_isDeviceNotInitialized;
 			_isDeviceNotInitialized = true;
 
-			if (_isDeviceWasLost) {
-				_canvas.handleDeviceLoss();
-			}
+			initializeContext();
+			onStageResizeHandler();
+			invalidateCanvas();
 
+			_isDeviceNotInitialized = false;
+		}
+
+		protected function initializeContext() : void {
 			_context = _stage.stage3Ds[_stage3DID].context3D;
 			_context.enableErrorChecking = _enableErrorChecking;
 			_context.setCulling(Context3DTriangleFace.NONE);
 			_context.setDepthTest(false, Context3DCompareMode.ALWAYS);
 			_isHardwareAccelerated = _context.driverInfo.toLowerCase().indexOf("software") == -1;
-
-			onStageResizeHandler();
-
-			_isDeviceNotInitialized = false;
 		}
 
 		protected function onStageResizeHandler(e : Event = null) : void {
@@ -87,8 +87,16 @@ package de.nulldesign.nd2d.display {
 
 			_context.configureBackBuffer(rect.width, rect.height, antialiasing, false);
 			_camera.resizeCameraStage(rect.width, rect.height);
-			_canvas.setStageAndCamRef(_stage, _camera);
 		}
+
+		protected function invalidateCanvas() : void {
+			_canvas.setStageAndCamRef(_stage, _camera);
+
+			if (_isDeviceWasLost) {
+				_canvas.handleDeviceLoss();
+			}
+		}
+
 
 		protected function onContext3DErrorHandler(event : ErrorEvent) : void {
 			throw new Error("The SWF is not embedded properly. The 3D context can't be created. Wrong WMODE? Set it to 'direct'.");

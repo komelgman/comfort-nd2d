@@ -2,6 +2,8 @@ package kom.fort.ui {
 
 	import de.nulldesign.nd2d.display.*;
 
+	import flash.display.DisplayObject;
+
 	import flash.utils.getQualifiedClassName;
 
 	import kom.exceptions.AbstractClassError;
@@ -18,6 +20,7 @@ package kom.fort.ui {
 		private var _buildComplete : Boolean = false;
 
 		protected var _name : String;
+		protected var _displayObject : DisplayObject = null;
 
 		/**
 		 * @param name - the name of the component
@@ -198,6 +201,10 @@ package kom.fort.ui {
 
 		public function isBuildComplete() : Boolean {
 			return _buildComplete;
+		}
+
+		public function get displayObject() : DisplayObject {
+			return _displayObject;
 		}
 	}
 }
